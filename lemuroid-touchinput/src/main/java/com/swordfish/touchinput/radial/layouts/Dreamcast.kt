@@ -9,11 +9,10 @@ import com.swordfish.touchinput.radial.controls.LemuroidControlCross
 import com.swordfish.touchinput.radial.controls.LemuroidControlFaceButtons
 import com.swordfish.touchinput.radial.layouts.shared.ComposeTouchLayouts
 import com.swordfish.touchinput.radial.layouts.shared.SecondaryAnalogLeft
-import com.swordfish.touchinput.radial.layouts.shared.SecondaryButtonL
+import com.swordfish.touchinput.radial.controls.LemuroidControlButton
 import com.swordfish.touchinput.radial.layouts.shared.SecondaryButtonL2
 import com.swordfish.touchinput.radial.layouts.shared.SecondaryButtonMenu
 import com.swordfish.touchinput.radial.layouts.shared.SecondaryButtonMenuPlaceholder
-import com.swordfish.touchinput.radial.layouts.shared.SecondaryButtonR
 import com.swordfish.touchinput.radial.layouts.shared.SecondaryButtonR2
 import com.swordfish.touchinput.radial.layouts.shared.SecondaryButtonStart
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
@@ -38,8 +37,13 @@ fun PadKitScope.DreamcastLeft(
             LemuroidControlCross(id = Id.DiscreteDirection(ComposeTouchLayouts.MOTION_SOURCE_DPAD))
         },
         secondaryDials = {
-            SecondaryButtonL()           // L → Dreamcast L trigger (digital)
-            SecondaryButtonL2()          // L2 → Dreamcast L trigger (analog, Flycast)
+            // L (digital) at 90° — separated from L2 at 120° to prevent overlap
+            LemuroidControlButton(
+                modifier = Modifier.radialPosition(90f),
+                id = Id.Key(KeyEvent.KEYCODE_BUTTON_L1),
+                label = "L",
+            )
+            SecondaryButtonL2()          // L2 → Dreamcast L trigger (analog, Flycast) at 120°
             SecondaryButtonMenuPlaceholder(settings)
             // Analog stick as secondary — sends MOTION_SOURCE_LEFT_STICK → ANALOG_LEFT in Flycast
             SecondaryAnalogLeft()
@@ -74,8 +78,13 @@ fun PadKitScope.DreamcastRight(
             )
         },
         secondaryDials = {
-            SecondaryButtonR()           // R → Dreamcast R trigger (digital)
-            SecondaryButtonR2()          // R2 → Dreamcast R trigger (analog, Flycast)
+            // R (digital) at 90° — separated from R2 at 60° to prevent overlap
+            LemuroidControlButton(
+                modifier = Modifier.radialPosition(90f),
+                id = Id.Key(KeyEvent.KEYCODE_BUTTON_R1),
+                label = "R",
+            )
+            SecondaryButtonR2()          // R2 → Dreamcast R trigger (analog, Flycast) at 60°
             SecondaryButtonStart(position = 2)
             // Placeholder to balance layout symmetry (mirrors PSP right-side empty Box)
             Box(
