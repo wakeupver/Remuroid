@@ -1,0 +1,56 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="360">
+  <!-- Dreamcast swirl logo -->
+  <!-- Outer ring -->
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M180,60
+          C113.7,60 60,113.7 60,180
+          C60,246.3 113.7,300 180,300
+          C246.3,300 300,246.3 300,180
+          C300,113.7 246.3,60 180,60Z
+          M180,80
+          C235.2,80 280,124.8 280,180
+          C280,235.2 235.2,280 180,280
+          C124.8,280 80,235.2 80,180
+          C80,124.8 124.8,80 180,80Z"/>
+  <!-- Swirl arm 1 (top-right) -->
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M180,100
+          C210,100 235,120 245,148
+          C220,138 195,140 180,160
+          C170,148 168,128 180,100Z"/>
+  <!-- Swirl arm 2 (bottom-right) -->
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M245,212
+          C250,240 235,265 212,275
+          C215,250 205,228 185,218
+          C198,210 222,208 245,212Z"/>
+  <!-- Swirl arm 3 (bottom-left) -->
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M115,212
+          C138,208 162,210 175,218
+          C155,228 145,250 148,275
+          C125,265 110,240 115,212Z"/>
+  <!-- Swirl arm 4 (top-left) -->
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M115,148
+          C125,120 150,100 180,100
+          C192,128 190,148 180,160
+          C165,140 140,138 115,148Z"/>
+  <!-- Center circle -->
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M180,160
+          C191,160 200,169 200,180
+          C200,191 191,200 180,200
+          C169,200 160,191 160,180
+          C160,169 169,160 180,160Z"/>
+</vector>
