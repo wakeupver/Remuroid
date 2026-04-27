@@ -447,11 +447,13 @@ void LibretroDroid::step() {
 
     LOGD("Stepping into retro_run()");
 
+    // advanceFrames() returns 0 when the next core frame deadline hasn't been
+    // reached yet (e.g. 30 fps core on 60 Hz display — every other vsync is a
+    // "skip" vsync where we just re-render the last frame and wait).
+    // The spiral-of-death cap (max 2) now lives inside advanceFrames() itself.
     unsigned frames = 1;
     if (__builtin_expect(fpsSync != nullptr, 1)) {
-        unsigned requestedFrames = fpsSync->advanceFrames();
-        // Cap to 2 to prevent spiral-of-death on slow devices
-        frames = (requestedFrames < 2u) ? requestedFrames : 2u;
+        frames = fpsSync->advanceFrames();
     }
 
     const unsigned totalRuns = frames * frameSpeed;
@@ -480,6 +482,31 @@ void LibretroDroid::step() {
         );
 
         dirtyVideo = true;
+    }
+
+    // Some cores (e.g. Flycast) call RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO at runtime to
+    // report the true frame-rate of the loaded game.  We must recreate fpsSync and the
+    // audio stream to match — otherwise a 30 fps game like Jet Grind Radio or Crazy Taxi
+    // keeps running at 60 fps (2× speed) because fpsSync still has the initial value from
+    // retro_get_system_av_info().
+    if (Environment::getInstance().isGameTimingUpdated()) {
+        double newFps        = Environment::getInstance().getGameTimingFps();
+        double newSampleRate = Environment::getInstance().getGameTimingSampleRate();
+        Environment::getInstance().clearGameTimingUpdated();
+
+        LOGI("Core updated AV timing: fps=%.3f sampleRate=%.1f — recreating fpsSync and audio",
+             newFps, newSampleRate);
+
+        fpsSync = std::make_unique<FPSSync>(newFps, screenRefreshRate);
+
+        double inputSampleRate = newSampleRate * fpsSync->getTimeStretchFactor();
+        audio = std::make_unique<Audio>(
+            (int32_t) std::lround(inputSampleRate),
+            newFps,
+            preferLowLatencyAudio
+        );
+        updateAudioSampleRateMultiplier();
+        audio->start();
     }
 
     if (video && Environment::getInstance().isScreenRotationUpdated()) {

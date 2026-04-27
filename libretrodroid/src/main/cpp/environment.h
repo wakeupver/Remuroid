@@ -102,6 +102,11 @@ public:
     bool isGameGeometryUpdated() const;
     void clearGameGeometryUpdated();
 
+    double getGameTimingFps() const;
+    double getGameTimingSampleRate() const;
+    bool isGameTimingUpdated() const;
+    void clearGameTimingUpdated();
+
     std::array<libretrodroid::RumbleState, 4> & getLastRumbleStates();
 
     const std::vector<struct Variable> getVariables() const;
@@ -141,6 +146,10 @@ private:
     unsigned gameGeometryWidth = 0;
     unsigned gameGeometryHeight = 0;
     float gameGeometryAspectRatio = -1.0f;
+
+    bool gameTimingUpdated = false;
+    double gameTimingFps = 0.0;
+    double gameTimingSampleRate = 0.0;
 
     std::array<libretrodroid::RumbleState, 4> rumbleStates;
 

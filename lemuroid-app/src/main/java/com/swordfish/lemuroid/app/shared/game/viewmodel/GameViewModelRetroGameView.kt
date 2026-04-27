@@ -295,7 +295,12 @@ class GameViewModelRetroGameView(
 
     // ─── Adaptive Performance ─────────────────────────────────────────────
 
-    private val adaptivePerformanceManager = AdaptivePerformanceManager(targetFps = 60.0)
+    // maxFps is capped at the display refresh rate (60 Hz on most devices).
+    // The APM will auto-detect the core's actual target FPS (e.g. 30 for Jet
+    // Grind Radio / Dreamcast) after a short warmup period, which prevents
+    // the "double speed" bug where 30 FPS games run at 2× because the manager
+    // mistakenly treated 33 ms frames as "very slow" against a 60 FPS target.
+    private val adaptivePerformanceManager = AdaptivePerformanceManager(maxFps = 60.0)
 
     /**
      * Observes frame-rendered events from GLRetroView and feeds them to
@@ -322,8 +327,9 @@ class GameViewModelRetroGameView(
                     delay(3.seconds)
                     val advice = adaptivePerformanceManager.getPerformanceAdvice()
                     Timber.d(
-                        "APM: avgFps=%.1f skipDupFrames=%b thermal=%s°C warn=%b crit=%b",
+                        "APM: avgFps=%.1f detectedTarget=%.1f skipDupFrames=%b thermal=%s°C warn=%b crit=%b",
                         advice.averageFps,
+                        advice.detectedTargetFps,
                         advice.skipDuplicateFrames,
                         advice.thermalCelsius?.let { "%.1f".format(it) } ?: "n/a",
                         advice.thermalWarn,

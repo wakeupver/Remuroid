@@ -64,6 +64,10 @@ void Environment::deinitialize() {
     gameGeometryHeight = 0;
     gameGeometryAspectRatio = -1.0f;
 
+    gameTimingUpdated = false;
+    gameTimingFps = 0.0;
+    gameTimingSampleRate = 0.0;
+
     rumbleStates.fill(libretrodroid::RumbleState {});
 }
 
@@ -304,7 +308,27 @@ bool Environment::handle_callback_environment(unsigned cmd, void *data) {
             return false;
 
             // TODO... RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO can also change frame-rate
-        case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
+        case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO: {
+            // SET_SYSTEM_AV_INFO carries a full retro_system_av_info (geometry + timing).
+            // Previously this was merged with SET_GEOMETRY and the timing.fps was silently
+            // discarded.  That caused games like Jet Grind Radio and Crazy Taxi (which run
+            // at 30 fps internally) to play at 2× speed: Flycast initially reports 60 fps
+            // from retro_get_system_av_info(), then calls SET_SYSTEM_AV_INFO with 30 fps
+            // after loading the disc.  Without this fix, fpsSync was never updated, so
+            // useVSync=true and retro_run() was called 60 times/sec instead of 30.
+            struct retro_system_av_info *av_info = static_cast<struct retro_system_av_info *>(data);
+            gameGeometryHeight      = av_info->geometry.base_height;
+            gameGeometryWidth       = av_info->geometry.base_width;
+            gameGeometryAspectRatio = av_info->geometry.aspect_ratio;
+            gameGeometryUpdated     = true;
+            if (av_info->timing.fps > 0.0) {
+                gameTimingFps        = av_info->timing.fps;
+                gameTimingSampleRate = av_info->timing.sample_rate;
+                gameTimingUpdated    = true;
+            }
+            return true;
+        }
+
         case RETRO_ENVIRONMENT_SET_GEOMETRY: {
             struct retro_game_geometry *geometry = static_cast<struct retro_game_geometry *>(data);
             gameGeometryHeight = geometry->base_height;
@@ -421,6 +445,22 @@ unsigned int Environment::getGameGeometryHeight() const {
 
 float Environment::getGameGeometryAspectRatio() const {
     return gameGeometryAspectRatio;
+}
+
+bool Environment::isGameTimingUpdated() const {
+    return gameTimingUpdated;
+}
+
+void Environment::clearGameTimingUpdated() {
+    gameTimingUpdated = false;
+}
+
+double Environment::getGameTimingFps() const {
+    return gameTimingFps;
+}
+
+double Environment::getGameTimingSampleRate() const {
+    return gameTimingSampleRate;
 }
 
 const std::vector<struct Variable> Environment::getVariables() const {

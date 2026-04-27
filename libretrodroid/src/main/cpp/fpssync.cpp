@@ -26,25 +26,56 @@ unsigned FPSSync::advanceFrames() {
 
     if (lastFrame == MIN_TIME) {
         start();
+        return 1;
     }
 
     auto now = std::chrono::steady_clock::now();
-    auto frames = std::max((now - lastFrame) / sampleInterval, (long long) 1);
-    lastFrame = lastFrame + sampleInterval * frames;
 
-    return frames;
+    // If we haven't reached the next frame deadline yet, tell the caller to skip
+    // retro_run() this vsync.  wait() will then sleep until the deadline so the
+    // next onDrawFrame() call arrives right on time.
+    // This is the key fix for the "double speed" bug on 30 fps games:
+    // Without this guard, std::max(..., 1) forced one retro_run() per vsync even
+    // when the frame budget hadn't expired — doubling the effective step rate for
+    // a 30 fps core on a 60 Hz display.
+    if (now < lastFrame) return 0;
+
+    auto elapsed  = now - lastFrame;
+    auto frames   = elapsed / sampleInterval;   // integer division, >= 1 here
+    if (frames < 1) frames = 1;                 // guard for rounding edge case
+    if (frames > 2) frames = 2;                 // cap: prevent spiral-of-death
+
+    lastFrame = lastFrame + sampleInterval * frames;
+    return static_cast<unsigned>(frames);
 }
 
 FPSSync::FPSSync(double contentRefreshRate, double screenRefreshRate) {
     this->contentRefreshRate = contentRefreshRate;
     this->screenRefreshRate = screenRefreshRate;
+
+    // useVSync=true when the display rate and core rate are within FPS_TOLERANCE.
+    // In this mode, advanceFrames() always returns 1 and wait() is a no-op —
+    // the display vsync itself provides the correct pacing.
+    //
+    // When the display is a near-exact integer multiple of the core rate
+    // (e.g. 120 Hz screen + 60 fps core, ratio ≈ 2.0), we still use vsync mode
+    // so we don't fight against eglSwapBuffers().  The extra vsync ticks are
+    // absorbed by the non-vsync path's wait() sleep — but in practice it is
+    // simpler and more accurate to let the non-vsync wait() handle it via the
+    // sampleInterval deadline.  So we only set useVSync=true for the 1:1 ratio.
     this->useVSync = std::abs(contentRefreshRate - screenRefreshRate) < FPS_TOLERANCE;
-    this->sampleInterval = std::chrono::microseconds((long) ((1000000L / contentRefreshRate)));
+    this->sampleInterval = std::chrono::microseconds((long)((1000000L / contentRefreshRate)));
     reset();
 }
 
 void FPSSync::start() {
-    LOGI("Starting game with fps %f on a screen with refresh rate %f. Using vsync: %d", contentRefreshRate, screenRefreshRate, useVSync);
+    LOGI(
+        "Starting game: core=%.3f Hz, screen=%.3f Hz, useVSync=%d, sampleInterval=%ld µs",
+        contentRefreshRate,
+        screenRefreshRate,
+        useVSync,
+        (long)(1000000L / contentRefreshRate)
+    );
     lastFrame = std::chrono::steady_clock::now();
 }
 

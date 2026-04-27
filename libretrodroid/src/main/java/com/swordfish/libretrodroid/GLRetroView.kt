@@ -22,6 +22,7 @@ import android.content.Context
 import android.graphics.PointF
 import android.graphics.RectF
 import android.opengl.GLSurfaceView
+import android.os.Build
 import android.os.Process
 import android.util.Log
 import android.view.InputDevice
@@ -123,7 +124,18 @@ class GLRetroView(
     private fun getDeviceLanguage() = Locale.getDefault().language
 
     private fun getDefaultRefreshRate(): Float {
-        return (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.refreshRate
+        val display = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
+        // display.refreshRate is deprecated and notoriously inaccurate on high-refresh-rate
+        // devices (e.g. 120 Hz panels that return 60.0).  display.mode.refreshRate reflects
+        // the *actual* active mode and is accurate from API 23 onwards.
+        // Using the wrong value here causes FPSSync to enable useVSync incorrectly:
+        //   core=60, fakeScreen=60 → useVSync=true → retro_run at 120 Hz → 2× speed.
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            display.mode.refreshRate
+        } else {
+            @Suppress("DEPRECATION")
+            display.refreshRate
+        }
     }
 
     fun sendKeyEvent(action: Int, keyCode: Int, port: Int = 0) {
